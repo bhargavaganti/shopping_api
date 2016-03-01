@@ -5,10 +5,10 @@ from rest_framework.response import Response
 
 from invoice.models import Invoice, Transaction
 from invoice.serializers import (InvoiceSerializer,
-                             TransactionSerializer,
-                             TransactionGetSerializer,
-                             InvoiceGetSerializer
-                             )
+                                 TransactionSerializer,
+                                 TransactionGetSerializer,
+                                 InvoiceGetSerializer
+                                 )
 
 
 @api_view(["GET", 'POST'])
@@ -37,3 +37,31 @@ def invoice_list(request):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'DELETE', 'PUT'])
+def invoice_detail(request, pk):
+    """ get ,delete ,put inovice by  id
+        """
+    if request.method == 'GET':
+        invoice = Invoice.objects.filter(id=pk)
+        transactions = Transaction.objects.filter(invoice_id=pk)
+        if invoice:
+            invoice[0].transactions = transactions
+        else:
+            return Response({'error': 'no data found'}, status=status.HTTP_201_CREATED)
+        serializer = InvoiceGetSerializer(invoice, many=True)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    elif request.method == 'DELETE':
+        transactions = Transaction.objects.filter(invoice_id=pk)
+        transactions.delete()
+        invoice = Invoice.objects.filter(id=pk)
+        invoice.delete()
+        return Response({'deleted': 'success'}, status=status.HTTP_201_CREATED)
+    elif request.method == 'PUT':
+        serializer = InvoiceSerializer(data=request.data)
+        data = request.data
+        if serializer.is_valid():
+            save = InvoiceSerializer(data=data)
+            save.create(request.data, request.method)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
